@@ -46,6 +46,7 @@ interface Product {
   name: string;
   price: number;
   unit: string;
+  createdAt: string;
 }
 
 interface ChatMessage {
@@ -88,6 +89,19 @@ function formatPrice(price: number): string {
     currency: 'INR',
     maximumFractionDigits: 0,
   }).format(price);
+}
+
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: '2-digit',
+  }) + ' ' + d.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -493,6 +507,9 @@ export default function Home() {
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {formatPrice(product.price)} / {product.unit}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground/70 mt-0.5">
+                          {formatDate(product.createdAt)}
                         </p>
                       </div>
                       <Button

@@ -96,11 +96,16 @@ export async function POST(request: NextRequest) {
     // Build Hindi response message
     let hindiMessage: string;
     if (products.length > 0) {
-      const lines = products.map(
-        (p) => `• ${p.name} — ₹${p.price} per ${p.unit}`
-      );
+      const lines = products.map((p) => {
+        const date = new Date(p.createdAt).toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "2-digit",
+        });
+        return `• ${p.name} — ₹${p.price} per ${p.unit} (${date})`;
+      });
       hindiMessage =
-        `Bill se ${products.length} product successfully add ho gaye hain:\n\n` +
+        `Bill se ${products.length} product add ho gaye hain:\n\n` +
         lines.join("\n");
     } else {
       hindiMessage =
