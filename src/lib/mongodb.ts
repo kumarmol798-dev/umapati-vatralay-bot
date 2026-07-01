@@ -1,24 +1,38 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const MONGODB_URI = process.env.MONGODB_URI!;
 
 if (!MONGODB_URI) {
-  throw new Error('MONGODB_URI environment variable is not defined');
+  throw new Error("MONGODB_URI environment variable is not defined");
 }
 
-// Cache connection for serverless (Vercel) — reuse across hot reloads
-let cached = (globalThis as unknown as { mongoose: { conn: typeof mongoose | null; promise: Promise<typeof mongoose> | null } }).mongoose;
-
-if (!cached) {
-  cached = (globalThis as unknown as { mongoose: { conn: typeof mongoose | null; promise: Promise<typeof mongoose> | null } }).mongoose = { conn: null, promise: null };
+interface MongooseCache {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
 }
 
-export async function dbConnect(): Promise<typeof mongoose> {
-  if (cached.conn) return cached.conn;
+declare global {
+  // eslint-disable-next-line no-var
+  var mongooseCache: MongooseCache | undefined;
+}
+
+let cached: MongooseCache = global.mongooseCache || { conn: null, promise: null };
+
+if (!global.mongooseCache) {
+  global.mongooseCache = cached;
+}
+
+export async function connectDB() {
+  if (cached.conn) {
+    return cached.conn;
+  }
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI, {
+    const opts = {
       bufferCommands: false,
+    };
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+      return mongoose;
     });
   }
 
@@ -31,3 +45,19 @@ export async function dbConnect(): Promise<typeof mongoose> {
 
   return cached.conn;
 }
+
+// ─── Product Schema ────────────────────────────────────────────────────────────
+
+const productSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    price: { type: Number, required: true },
+    unit: { type: String, default: "pcs" },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+export const Product =
+  mongoose.models.Product || mongoose.model("Product", productSchema);

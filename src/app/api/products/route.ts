@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { db } from "@/lib/db";
+import { connectDB, Product } from "@/lib/mongodb";
 
 const createProductSchema = z.object({
   name: z.string().min(1, "Product name is required"),
@@ -11,10 +11,17 @@ const createProductSchema = z.object({
 // GET /api/products — Return all products
 export async function GET() {
   try {
-    const products = await db.product.findMany({
-      orderBy: { createdAt: "desc" },
+    await connectDB();
+    const products = await Product.find().sort({ createdAt: -1 }).lean();
+    return NextResponse.json({
+      products: products.map((p) => ({
+        id: String(p._id),
+        name: p.name,
+        price: p.price,
+        unit: p.unit,
+        createdAt: (p.createdAt as Date).toISOString(),
+      })),
     });
-    return NextResponse.json({ products });
   } catch (error) {
     console.error("Error fetching products:", error);
     return NextResponse.json(
@@ -27,6 +34,7 @@ export async function GET() {
 // POST /api/products — Create a new product
 export async function POST(request: NextRequest) {
   try {
+    await connectDB();
     const body = await request.json();
     const parsed = createProductSchema.safeParse(body);
 
@@ -39,11 +47,18 @@ export async function POST(request: NextRequest) {
 
     const { name, price, unit } = parsed.data;
 
-    const product = await db.product.create({
-      data: { name, price, unit },
-    });
+    const product = await Product.create({ name, price, unit });
 
-    return NextResponse.json(product, { status: 201 });
+    return NextResponse.json(
+      {
+        id: String(product._id),
+        name: product.name,
+        price: product.price,
+        unit: product.unit,
+        createdAt: (product.createdAt as Date).toISOString(),
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Error creating product:", error);
     return NextResponse.json(
@@ -56,6 +71,7 @@ export async function POST(request: NextRequest) {
 // DELETE /api/products?id=xxx — Delete a product by ID
 export async function DELETE(request: NextRequest) {
   try {
+    await connectDB();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -66,9 +82,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await db.product.delete({
-      where: { id },
-    });
+    await Product.findByIdAndDelete(id);
 
     return NextResponse.json({ success: true });
   } catch (error) {

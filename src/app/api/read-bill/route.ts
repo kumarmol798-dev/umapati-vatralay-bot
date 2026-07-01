@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { db } from "@/lib/db";
+import { connectDB, Product } from "@/lib/mongodb";
 import ZAI from "z-ai-web-dev-sdk";
 
 const readBillSchema = z.object({
@@ -55,17 +55,8 @@ export async function POST(request: NextRequest) {
 
     // Try to parse JSON from the VLM response
     let extractedProducts: ExtractedProduct[] = [];
-    let products: Array<{
-      id: string;
-      name: string;
-      price: number;
-      unit: string;
-      createdAt: string;
-      updatedAt: string;
-    }> = [];
 
     try {
-      // Extract JSON array from response (VLM might wrap it in markdown code blocks)
       const jsonMatch = rawResponse.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]) as ExtractedProduct[];
@@ -77,18 +68,31 @@ export async function POST(request: NextRequest) {
       console.warn("Could not parse JSON from VLM response, returning raw text");
     }
 
-    // Save extracted products to the database
+    // Save extracted products to MongoDB
+    await connectDB();
+    const products: Array<{
+      id: string;
+      name: string;
+      price: number;
+      unit: string;
+      createdAt: string;
+    }> = [];
+
     if (extractedProducts.length > 0) {
       for (const item of extractedProducts) {
         if (item.name && item.price) {
-          const created = await db.product.create({
-            data: {
-              name: item.name,
-              price: Number(item.price),
-              unit: item.unit || "pcs",
-            },
+          const created = await Product.create({
+            name: item.name,
+            price: Number(item.price),
+            unit: item.unit || "pcs",
           });
-          products.push(created);
+          products.push({
+            id: String(created._id),
+            name: created.name,
+            price: created.price,
+            unit: created.unit,
+            createdAt: (created.createdAt as Date).toISOString(),
+          });
         }
       }
     }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { db } from "@/lib/db";
+import { connectDB, Product } from "@/lib/mongodb";
 import ZAI from "z-ai-web-dev-sdk";
 
 const chatSchema = z.object({
@@ -21,15 +21,14 @@ export async function POST(request: NextRequest) {
 
     const { message } = parsed.data;
 
-    // Fetch all products from the database
-    const products = await db.product.findMany({
-      orderBy: { createdAt: "desc" },
-    });
+    // Fetch all products from MongoDB
+    await connectDB();
+    const products = await Product.find().sort({ createdAt: -1 }).lean();
 
     // Build product list string with dates
     const productList = products
       .map((p) => {
-        const date = new Date(p.createdAt).toLocaleDateString("en-IN", {
+        const date = new Date(p.createdAt as Date).toLocaleDateString("en-IN", {
           day: "2-digit",
           month: "short",
           year: "2-digit",
