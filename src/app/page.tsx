@@ -325,7 +325,7 @@ export default function Home() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="h-screen flex flex-col bg-white max-w-lg mx-auto relative overflow-hidden">
+    <div className="h-screen flex flex-col bg-[#111b21] max-w-lg mx-auto relative overflow-hidden shadow-2xl">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header
         className="flex items-center justify-between px-4 py-2.5 shrink-0 z-10"
