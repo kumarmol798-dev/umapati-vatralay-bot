@@ -37,7 +37,17 @@ export async function POST(request: NextRequest) {
           content: [
             {
               type: "text",
-              text: "Ye ek stock bill ya invoice ka photo hai. Isme se saare products aur unke prices extract karo. Ek JSON array return karo jisme har product ka naam, price, aur unit (jaise kg, pcs, liter etc.) ho. Sirf JSON return karo, koi extra text nahi. Format: [{\"name\": \"product name\", \"price\": 123, \"unit\": \"kg\"}]. Agar koi field unclear ho to best guess karo.",
+              text: `Ye ek stock bill ya invoice ka photo hai. Isme se saare products aur unke prices extract karo.
+
+STRICTLY return ONLY a valid JSON array. No extra text, no explanation, no markdown.
+Example: [{"name": "product name", "price": 123, "unit": "pcs"}]
+
+Rules:
+- "name" = product name (string)
+- "price" = product price (number only, no ₹ symbol)
+- "unit" = unit like pcs, kg, liter, meter, box, pack, dozen (string)
+- Extract ALL items from the bill
+- If unit is not clear, use "pcs"`,
             },
             {
               type: "image_url",
@@ -51,26 +61,55 @@ export async function POST(request: NextRequest) {
       thinking: { type: "disabled" },
     });
 
-    const rawResponse = completion.choices[0]?.message?.content || "";
+    let rawResponse = completion.choices[0]?.message?.content || "";
+    console.log("[read-bill] VLM raw response:", rawResponse.substring(0, 500));
 
-    // Try to parse JSON from the VLM response
+    // Try multiple parsing strategies
     let extractedProducts: ExtractedProduct[] = [];
 
+    // Strategy 1: Direct JSON parse
     try {
-      const jsonMatch = rawResponse.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]) as ExtractedProduct[];
-        if (Array.isArray(parsed)) {
-          extractedProducts = parsed;
-        }
+      const parsed = JSON.parse(rawResponse);
+      if (Array.isArray(parsed)) {
+        extractedProducts = parsed;
       }
     } catch {
-      console.warn("Could not parse JSON from VLM response, returning raw text");
+      // Strategy 2: Extract from markdown code block
+      try {
+        const codeBlockMatch = rawResponse.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (codeBlockMatch) {
+          const parsed = JSON.parse(codeBlockMatch[1].trim());
+          if (Array.isArray(parsed)) {
+            extractedProducts = parsed;
+          }
+        }
+      } catch {
+        // Strategy 3: Find first [...] in the response
+        try {
+          const jsonMatch = rawResponse.match(/\[[\s\S]*\]/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (Array.isArray(parsed)) {
+              extractedProducts = parsed;
+            }
+          }
+        } catch {
+          console.warn("[read-bill] All JSON parse strategies failed");
+        }
+      }
     }
 
-    // Save extracted products to MongoDB
+    console.log("[read-bill] Parsed products count:", extractedProducts.length);
+
+    // Sanitize products
+    const validProducts = extractedProducts.filter(
+      (p) => p.name && typeof p.price === "number" && p.price > 0
+    );
+    console.log("[read-bill] Valid products:", JSON.stringify(validProducts));
+
+    // Save to MongoDB
     await connectDB();
-    const products: Array<{
+    const savedProducts: Array<{
       id: string;
       name: string;
       price: number;
@@ -78,29 +117,30 @@ export async function POST(request: NextRequest) {
       createdAt: string;
     }> = [];
 
-    if (extractedProducts.length > 0) {
-      for (const item of extractedProducts) {
-        if (item.name && item.price) {
-          const created = await Product.create({
-            name: item.name,
-            price: Number(item.price),
-            unit: item.unit || "pcs",
-          });
-          products.push({
-            id: String(created._id),
-            name: created.name,
-            price: created.price,
-            unit: created.unit,
-            createdAt: (created.createdAt as Date).toISOString(),
-          });
-        }
+    for (const item of validProducts) {
+      try {
+        const created = await Product.create({
+          name: String(item.name).trim(),
+          price: Number(item.price),
+          unit: String(item.unit || "pcs").trim(),
+        });
+        savedProducts.push({
+          id: String(created._id),
+          name: created.name,
+          price: created.price,
+          unit: created.unit,
+          createdAt: (created.createdAt as Date).toISOString(),
+        });
+        console.log("[read-bill] Saved:", created.name, "₹" + created.price);
+      } catch (saveErr) {
+        console.error("[read-bill] Failed to save product:", item.name, saveErr);
       }
     }
 
-    // Build Hindi response message
+    // Build Hindi response
     let hindiMessage: string;
-    if (products.length > 0) {
-      const lines = products.map((p) => {
+    if (savedProducts.length > 0) {
+      const lines = savedProducts.map((p) => {
         const date = new Date(p.createdAt).toLocaleDateString("en-IN", {
           day: "2-digit",
           month: "short",
@@ -109,20 +149,23 @@ export async function POST(request: NextRequest) {
         return `• ${p.name} — ₹${p.price} per ${p.unit} (${date})`;
       });
       hindiMessage =
-        `Bill se ${products.length} product add ho gaye hain:\n\n` +
+        `Bill se ${savedProducts.length} product add ho gaye hain:\n\n` +
         lines.join("\n");
+    } else if (rawResponse) {
+      hindiMessage =
+        `Bill padh to liya lekin products save nahi ho paye. Bill ye tha:\n\n` +
+        rawResponse;
     } else {
       hindiMessage =
-        rawResponse ||
         "Bill se products identify nahi ho paye. Kripya saaf photo upload karein.";
     }
 
     return NextResponse.json({
       response: hindiMessage,
-      products,
+      products: savedProducts,
     });
   } catch (error) {
-    console.error("Error reading bill:", error);
+    console.error("[read-bill] Error:", error);
     return NextResponse.json(
       { error: "Failed to read bill image" },
       { status: 500 }
