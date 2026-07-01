@@ -205,6 +205,9 @@ export default function Home() {
       setSelectedImage(null);
 
       try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 60000);
+
         const res = await fetch('/api/read-bill', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -212,9 +215,18 @@ export default function Home() {
             image: selectedImage.base64,
             mimeType: selectedImage.mimeType,
           }),
+          signal: controller.signal,
         });
+        clearTimeout(timeout);
 
         const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Server error');
+        }
+
+        // Refresh product list after bill read
+        fetchProducts();
 
         const botMsg: ChatMessage = {
           id: generateId(),
@@ -224,7 +236,7 @@ export default function Home() {
         };
 
         setMessages((prev) => [...prev, botMsg]);
-      } catch {
+      } catch (err) {
         const errorMsg: ChatMessage = {
           id: generateId(),
           text: 'Kuch gadbad ho gayi. Dubara try karo. 🙏',
@@ -256,13 +268,22 @@ export default function Home() {
     setIsTyping(true);
 
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
       const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Server error');
+      }
 
       const botMsg: ChatMessage = {
         id: generateId(),
