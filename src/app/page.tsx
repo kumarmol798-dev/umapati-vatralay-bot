@@ -10,7 +10,14 @@ import {
   X,
   Settings,
   Trash2,
+  MoreVertical,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -326,7 +333,7 @@ export default function Home() {
     <div className="h-screen flex flex-col bg-[#111b21] max-w-lg mx-auto relative overflow-hidden shadow-2xl">
       {/* ── Header (Fixed) ──────────────────────────────────────────────── */}
       <header
-        className="sticky top-0 flex items-center justify-between px-4 py-2.5 shrink-0 z-10"
+        className="flex items-center justify-between px-4 py-2.5 shrink-0 z-20"
         style={{ backgroundColor: '#075E54' }}
       >
         <div className="flex items-center gap-3">
@@ -344,18 +351,43 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Admin Panel Trigger */}
-        <Sheet open={adminOpen} onOpenChange={setAdminOpen}>
-          <SheetTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-white/10 focus-visible:ring-0 focus-visible:ring-offset-0"
-            >
-              <Settings size={22} />
-              <span className="sr-only">Product Management</span>
-            </Button>
-          </SheetTrigger>
+        {/* 3-dot menu + Settings */}
+        <div className="flex items-center gap-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-white/10 focus-visible:ring-0 focus-visible:ring-offset-0"
+              >
+                <MoreVertical size={22} />
+                <span className="sr-only">More options</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => {
+                  setMessages([WELCOME_MESSAGE]);
+                  toast.success('Chat clear ho gaya!');
+                }}
+              >
+                <Trash2 size={16} className="mr-2" />
+                Clear Chat
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Sheet open={adminOpen} onOpenChange={setAdminOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-white/10 focus-visible:ring-0 focus-visible:ring-offset-0"
+              >
+                <Settings size={22} />
+                <span className="sr-only">Product Management</span>
+              </Button>
+            </SheetTrigger>
 
           <SheetContent side="right" className="p-0 w-full sm:max-w-sm">
             <SheetHeader className="px-4 pt-4 pb-2">
@@ -481,11 +513,12 @@ export default function Home() {
             </div>
           </SheetContent>
         </Sheet>
+        </div>
       </header>
 
       {/* ── Chat Area ──────────────────────────────────────────────────────── */}
       <main
-        className="flex-1 overflow-y-auto px-3 py-3 space-y-1.5 custom-scrollbar"
+        className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-1.5 custom-scrollbar"
         style={{
           backgroundColor: '#ECE5DD',
           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
@@ -649,7 +682,7 @@ export default function Home() {
 
       {/* ── Input Area (Fixed) ──────────────────────────────────────────── */}
       <footer
-        className="sticky bottom-0 shrink-0 px-2 py-2 flex items-end gap-2"
+        className="shrink-0 px-2 py-2 flex items-end gap-2 z-20"
         style={{ backgroundColor: '#F0F0F0' }}
       >
         {/* Hidden file input */}
