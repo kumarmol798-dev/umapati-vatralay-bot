@@ -9,9 +9,7 @@ import {
   Plus,
   X,
   Settings,
-  Store,
   Trash2,
-  ImageIcon,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -326,18 +324,18 @@ export default function Home() {
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="h-screen flex flex-col bg-[#111b21] max-w-lg mx-auto relative overflow-hidden shadow-2xl">
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      {/* ── Header (Fixed) ──────────────────────────────────────────────── */}
       <header
-        className="flex items-center justify-between px-4 py-2.5 shrink-0 z-10"
+        className="sticky top-0 flex items-center justify-between px-4 py-2.5 shrink-0 z-10"
         style={{ backgroundColor: '#075E54' }}
       >
         <div className="flex items-center gap-3">
-          <div
-            className="flex items-center justify-center rounded-full"
-            style={{ backgroundColor: '#128C7E', width: 40, height: 40 }}
-          >
-            <Store className="text-white" size={22} />
-          </div>
+          <img
+            src="/logo.png"
+            alt="Umapati Vatralay"
+            className="rounded-full object-cover"
+            style={{ width: 40, height: 40, backgroundColor: '#128C7E' }}
+          />
           <div>
             <h1 className="text-white font-semibold text-base leading-tight">
               Umapati Vatralay
@@ -649,9 +647,9 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* ── Input Area ──────────────────────────────────────────────────────── */}
+      {/* ── Input Area (Fixed) ──────────────────────────────────────────── */}
       <footer
-        className="shrink-0 px-2 py-2 flex items-end gap-2"
+        className="sticky bottom-0 shrink-0 px-2 py-2 flex items-end gap-2"
         style={{ backgroundColor: '#F0F0F0' }}
       >
         {/* Hidden file input */}
