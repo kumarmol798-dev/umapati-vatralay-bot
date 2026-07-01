@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { connectDB, Product } from "@/lib/mongodb";
-import ZAI from "z-ai-web-dev-sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const readBillSchema = z.object({
   image: z.string().min(1, "Image base64 is required"),
@@ -28,41 +28,42 @@ export async function POST(request: NextRequest) {
 
     const { image: base64Image, mimeType } = parsed.data;
 
-    // Call VLM to analyze the bill image
-    const zai = await ZAI.create();
-    const completion = await zai.chat.completions.createVision({
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `Ye ek stock bill ya invoice ka photo hai. Isme se saare products aur unke prices extract karo.
+    // Call Gemini Vision to analyze the bill
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "GEMINI_API_KEY environment variable is not set. Please add it in Vercel settings." },
+        { status: 500 }
+      );
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          mimeType: mimeType,
+          data: base64Image,
+        },
+      },
+      {
+        text: `Ye ek stock bill ya invoice ka photo hai. Isme se saare products aur unke prices extract karo.
 
 STRICTLY return ONLY a valid JSON array. No extra text, no explanation, no markdown.
 Example: [{"name": "product name", "price": 123, "unit": "pcs"}]
 
 Rules:
 - "name" = product name (string)
-- "price" = product price (number only, no ₹ symbol)
-- "unit" = unit like pcs, kg, liter, meter, box, pack, dozen (string)
+- "price" = product price (number only, no ₹ symbol, no commas)
+- "unit" = unit like pcs, kg, liter, meter, box, pack, dozen (string, default "pcs")
 - Extract ALL items from the bill
 - If unit is not clear, use "pcs"`,
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:${mimeType};base64,${base64Image}`,
-              },
-            },
-          ],
-        },
-      ],
-      thinking: { type: "disabled" },
-    });
+      },
+    ]);
 
-    let rawResponse = completion.choices[0]?.message?.content || "";
-    console.log("[read-bill] VLM raw response:", rawResponse.substring(0, 500));
+    let rawResponse = result.response.text();
+    console.log("[read-bill] Gemini raw response:", rawResponse.substring(0, 500));
 
     // Try multiple parsing strategies
     let extractedProducts: ExtractedProduct[] = [];
@@ -99,13 +100,10 @@ Rules:
       }
     }
 
-    console.log("[read-bill] Parsed products count:", extractedProducts.length);
-
-    // Sanitize products
+    // Sanitize
     const validProducts = extractedProducts.filter(
       (p) => p.name && typeof p.price === "number" && p.price > 0
     );
-    console.log("[read-bill] Valid products:", JSON.stringify(validProducts));
 
     // Save to MongoDB
     await connectDB();
@@ -131,9 +129,8 @@ Rules:
           unit: created.unit,
           createdAt: (created.createdAt as Date).toISOString(),
         });
-        console.log("[read-bill] Saved:", created.name, "₹" + created.price);
       } catch (saveErr) {
-        console.error("[read-bill] Failed to save product:", item.name, saveErr);
+        console.error("[read-bill] Failed to save:", item.name, saveErr);
       }
     }
 
@@ -151,12 +148,9 @@ Rules:
       hindiMessage =
         `Bill se ${savedProducts.length} product add ho gaye hain:\n\n` +
         lines.join("\n");
-    } else if (rawResponse) {
-      hindiMessage =
-        `Bill padh to liya lekin products save nahi ho paye. Bill ye tha:\n\n` +
-        rawResponse;
     } else {
       hindiMessage =
+        rawResponse ||
         "Bill se products identify nahi ho paye. Kripya saaf photo upload karein.";
     }
 
@@ -167,7 +161,7 @@ Rules:
   } catch (error) {
     console.error("[read-bill] Error:", error);
     return NextResponse.json(
-      { error: "Failed to read bill image" },
+      { error: error instanceof Error ? error.message : "Failed to read bill image" },
       { status: 500 }
     );
   }

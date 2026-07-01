@@ -1,11 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { connectDB, Product } from "@/lib/mongodb";
-import ZAI from "z-ai-web-dev-sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const chatSchema = z.object({
   message: z.string().min(1, "Message is required"),
 });
+
+async function callLLM(systemPrompt: string, userMessage: string): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY not set");
+  }
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+  const fullPrompt = `${systemPrompt}\n\nCustomer: ${userMessage}\n\nJawab:`;
+
+  const result = await model.generateContent(fullPrompt);
+  const response = result.response.text();
+  return response;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -54,13 +70,9 @@ IMPORTANT — Duplicate Products Rule:
 In products ke naam do ya zyada baar repeat ho rahe hain (different prices/dates se): ${duplicates.join(", ")}
 
 Jab customer in mein se koi product pooche:
-1. Sabhi variants dikhao with date aur price — jaise:
-   "Suit (DC)" ke 2 variant mile hain:
-   • ₹1200 per pcs — (added: 01 Jul '26) — PURANA
-   • ₹1500 per pcs — (added: 05 Jul '26) — NAYA
-2. Customer se puchho: "Aapko kaunsa chahiye — purana wala ya naya wala?"
-3. Jab customer bataye (jaise "naya", "latest", "2nd", date batai), to wahi price batao.
-4. Agar customer sirf naam bole aur specify na kare, to sab variants dikhao aur puchho kaunsa chahiye.`;
+1. Sabhi variants dikhao with date aur price
+2. Customer se puchho kaunsa chahiye — purana ya naya
+3. Jab customer bataye to wahi price batao.`;
     }
 
     const systemPrompt = `Tum Umapati Vatralay ke assistant ho. Tumhari job hai customers ko product ke baare mein batana.
@@ -75,25 +87,13 @@ General Rules:
 - Hamesha Hindi/Hinglish mein reply karo.
 - Short aur sweet raho. Price batate time ₹ symbol use karo.`;
 
-    // Call LLM
-    const zai = await ZAI.create();
-    const completion = await zai.chat.completions.create({
-      messages: [
-        { role: "assistant", content: systemPrompt },
-        { role: "user", content: message },
-      ],
-      thinking: { type: "disabled" },
-    });
-
-    const response =
-      completion.choices[0]?.message?.content ||
-      "Maaf karo, abhi reply nahi de pa raha.";
+    const response = await callLLM(systemPrompt, message);
 
     return NextResponse.json({ response });
   } catch (error) {
     console.error("Error in chat endpoint:", error);
     return NextResponse.json(
-      { error: "Failed to process chat message" },
+      { error: error instanceof Error ? error.message : "Failed to process chat message" },
       { status: 500 }
     );
   }
