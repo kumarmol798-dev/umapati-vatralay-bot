@@ -31,25 +31,47 @@ async function callGroqVision(base64Image: string, mimeType: string): Promise<st
   const { Groq } = await import("groq-sdk");
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-  const result = await groq.chat.completions.create({
-    model: "llama-3.2-90b-vision-preview",
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image_url",
-            image_url: { url: `data:${mimeType};base64,${base64Image}` },
-          },
-          { type: "text", text: BILL_PROMPT },
-        ],
-      },
-    ],
-    temperature: 0.1,
-    max_tokens: 2048,
-  });
+  // Try multiple vision models in order
+  const models = [
+    "meta-llama/llama-4-scout-17b-16e-instruct",
+    "llama-3.2-90b-vision-preview",
+    "llama-3.2-11b-vision-preview",
+  ];
 
-  return result.choices[0]?.message?.content || "";
+  let lastError: Error | null = null;
+
+  for (const model of models) {
+    try {
+      console.log(`[read-bill] Trying model: ${model}`);
+      const result = await groq.chat.completions.create({
+        model,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image_url: { url: `data:${mimeType};base64,${base64Image}` },
+              },
+              { type: "text", text: BILL_PROMPT },
+            ],
+          },
+        ],
+        temperature: 0.1,
+        max_tokens: 2048,
+      });
+      const text = result.choices[0]?.message?.content || "";
+      if (text) {
+        console.log(`[read-bill] Success with model: ${model}`);
+        return text;
+      }
+    } catch (err) {
+      lastError = err as Error;
+      console.warn(`[read-bill] Model ${model} failed:`, (err as Error).message);
+    }
+  }
+
+  throw lastError || new Error("All Groq vision models failed");
 }
 
 // ─── z-ai-web-dev-sdk Vision (for local dev only) ────────────────────────────
@@ -77,18 +99,14 @@ async function callZAIVision(base64Image: string, mimeType: string): Promise<str
   return result.choices[0]?.message?.content || "";
 }
 
-// ─── Vision LLM Router: Groq first → z-ai fallback (local) ───────────────────
+// ─── Vision LLM Router ────────────────────────────────────────────────────────
 
 async function callVisionLLM(base64Image: string, mimeType: string): Promise<string> {
-  // Try Groq first (works on Vercel)
+  // On Vercel: use Groq only
   if (process.env.GROQ_API_KEY) {
-    try {
-      return await callGroqVision(base64Image, mimeType);
-    } catch (err) {
-      console.warn("[read-bill] Groq failed, falling back to ZAI:", err);
-    }
+    return await callGroqVision(base64Image, mimeType);
   }
-  // Fallback to z-ai-web-dev-sdk (local dev)
+  // Local dev: use z-ai-web-dev-sdk
   return await callZAIVision(base64Image, mimeType);
 }
 
@@ -108,7 +126,7 @@ export async function POST(request: NextRequest) {
 
     const { image: base64Image, mimeType } = parsed.data;
 
-    // Call Vision LLM with fallback
+    // Call Vision LLM
     let rawResponse = await callVisionLLM(base64Image, mimeType);
     console.log("[read-bill] LLM raw response:", rawResponse.substring(0, 500));
 

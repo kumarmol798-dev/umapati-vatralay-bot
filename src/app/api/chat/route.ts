@@ -45,15 +45,11 @@ async function callZAI(systemPrompt: string, userMessage: string): Promise<strin
 // ─── LLM Router: Groq first → z-ai fallback (local) ──────────────────────────
 
 async function callLLM(systemPrompt: string, userMessage: string): Promise<string> {
-  // Try Groq first (works on Vercel)
+  // On Vercel: use Groq only (ZAI doesn't work on Vercel)
   if (process.env.GROQ_API_KEY) {
-    try {
-      return await callGroq(systemPrompt, userMessage);
-    } catch (err) {
-      console.warn("[chat] Groq failed, falling back to ZAI:", err);
-    }
+    return await callGroq(systemPrompt, userMessage);
   }
-  // Fallback to z-ai-web-dev-sdk (local dev)
+  // Local dev: use z-ai-web-dev-sdk
   return await callZAI(systemPrompt, userMessage);
 }
 
