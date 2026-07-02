@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { connectDB, Product } from "@/lib/mongodb";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const readBillSchema = z.object({
   image: z.string().min(1, "Image base64 is required"),
@@ -26,25 +25,34 @@ Rules:
 - Extract ALL items from the bill
 - If unit is not clear, use "pcs"`;
 
-async function callGeminiVision(base64Image: string, mimeType: string): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GEMINI_API_KEY not set");
+// ─── Groq Vision (for Vercel — 100% free) ────────────────────────────────────
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+async function callGroqVision(base64Image: string, mimeType: string): Promise<string> {
+  const { Groq } = await import("groq-sdk");
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-  const result = await model.generateContent([
-    {
-      inlineData: {
-        mimeType: mimeType,
-        data: base64Image,
+  const result = await groq.chat.completions.create({
+    model: "llama-3.2-90b-vision-preview",
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "image_url",
+            image_url: { url: `data:${mimeType};base64,${base64Image}` },
+          },
+          { type: "text", text: BILL_PROMPT },
+        ],
       },
-    },
-    { text: BILL_PROMPT },
-  ]);
+    ],
+    temperature: 0.1,
+    max_tokens: 2048,
+  });
 
-  return result.response.text();
+  return result.choices[0]?.message?.content || "";
 }
+
+// ─── z-ai-web-dev-sdk Vision (for local dev only) ────────────────────────────
 
 async function callZAIVision(base64Image: string, mimeType: string): Promise<string> {
   const ZAI = (await import("z-ai-web-dev-sdk")).default;
@@ -69,18 +77,22 @@ async function callZAIVision(base64Image: string, mimeType: string): Promise<str
   return result.choices[0]?.message?.content || "";
 }
 
+// ─── Vision LLM Router: Groq first → z-ai fallback (local) ───────────────────
+
 async function callVisionLLM(base64Image: string, mimeType: string): Promise<string> {
-  // Try Gemini first (for Vercel)
-  if (process.env.GEMINI_API_KEY) {
+  // Try Groq first (works on Vercel)
+  if (process.env.GROQ_API_KEY) {
     try {
-      return await callGeminiVision(base64Image, mimeType);
+      return await callGroqVision(base64Image, mimeType);
     } catch (err) {
-      console.warn("[read-bill] Gemini failed, falling back to ZAI:", err);
+      console.warn("[read-bill] Groq failed, falling back to ZAI:", err);
     }
   }
-  // Fallback to z-ai-web-dev-sdk (for local dev)
+  // Fallback to z-ai-web-dev-sdk (local dev)
   return await callZAIVision(base64Image, mimeType);
 }
+
+// ─── Route Handler ─────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
   try {

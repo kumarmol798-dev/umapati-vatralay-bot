@@ -1,23 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { connectDB, Product } from "@/lib/mongodb";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const chatSchema = z.object({
   message: z.string().min(1, "Message is required"),
 });
 
-async function callGemini(systemPrompt: string, userMessage: string): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GEMINI_API_KEY not set");
+// ─── Groq (for Vercel — 100% free, no billing) ────────────────────────────────
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+async function callGroq(systemPrompt: string, userMessage: string): Promise<string> {
+  const { Groq } = await import("groq-sdk");
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-  const fullPrompt = `${systemPrompt}\n\nCustomer: ${userMessage}\n\nJawab:`;
-  const result = await model.generateContent(fullPrompt);
-  return result.response.text();
+  const result = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userMessage },
+    ],
+    temperature: 0.7,
+    max_tokens: 512,
+  });
+
+  return result.choices[0]?.message?.content || "Koi response nahi aaya.";
 }
+
+// ─── z-ai-web-dev-sdk (for local dev only) ────────────────────────────────────
 
 async function callZAI(systemPrompt: string, userMessage: string): Promise<string> {
   const ZAI = (await import("z-ai-web-dev-sdk")).default;
@@ -34,18 +42,22 @@ async function callZAI(systemPrompt: string, userMessage: string): Promise<strin
   return result.choices[0]?.message?.content || "Koi response nahi aaya.";
 }
 
+// ─── LLM Router: Groq first → z-ai fallback (local) ──────────────────────────
+
 async function callLLM(systemPrompt: string, userMessage: string): Promise<string> {
-  // Try Gemini first (for Vercel)
-  if (process.env.GEMINI_API_KEY) {
+  // Try Groq first (works on Vercel)
+  if (process.env.GROQ_API_KEY) {
     try {
-      return await callGemini(systemPrompt, userMessage);
+      return await callGroq(systemPrompt, userMessage);
     } catch (err) {
-      console.warn("[chat] Gemini failed, falling back to ZAI:", err);
+      console.warn("[chat] Groq failed, falling back to ZAI:", err);
     }
   }
-  // Fallback to z-ai-web-dev-sdk (for local dev)
+  // Fallback to z-ai-web-dev-sdk (local dev)
   return await callZAI(systemPrompt, userMessage);
 }
+
+// ─── Route Handler ─────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
   try {
