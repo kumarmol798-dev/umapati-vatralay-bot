@@ -293,10 +293,11 @@ export default function Home() {
       };
 
       setMessages((prev) => [...prev, botMsg]);
-    } catch {
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : 'Unknown error';
       const errorMsg: ChatMessage = {
         id: generateId(),
-        text: 'Kuch gadbad ho gayi. Internet check karo ya dubara try karo. 🙏',
+        text: `❌ Error: ${errMsg}`,
         sender: 'bot',
         timestamp: new Date(),
       };
