@@ -14,6 +14,74 @@ interface ExtractedProduct {
   unit: string;
 }
 
+const BILL_PROMPT = `Ye ek stock bill ya invoice ka photo hai. Isme se saare products aur unke prices extract karo.
+
+STRICTLY return ONLY a valid JSON array. No extra text, no explanation, no markdown.
+Example: [{"name": "product name", "price": 123, "unit": "pcs"}]
+
+Rules:
+- "name" = product name (string)
+- "price" = product price (number only, no ₹ symbol, no commas)
+- "unit" = unit like pcs, kg, liter, meter, box, pack, dozen (string, default "pcs")
+- Extract ALL items from the bill
+- If unit is not clear, use "pcs"`;
+
+async function callGeminiVision(base64Image: string, mimeType: string): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY not set");
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+  const result = await model.generateContent([
+    {
+      inlineData: {
+        mimeType: mimeType,
+        data: base64Image,
+      },
+    },
+    { text: BILL_PROMPT },
+  ]);
+
+  return result.response.text();
+}
+
+async function callZAIVision(base64Image: string, mimeType: string): Promise<string> {
+  const ZAI = (await import("z-ai-web-dev-sdk")).default;
+  const zai = await ZAI.create();
+
+  const result = await zai.chat.completions.createVision({
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: BILL_PROMPT },
+          {
+            type: "image_url",
+            image_url: { url: `data:${mimeType};base64,${base64Image}` },
+          },
+        ],
+      },
+    ],
+    thinking: { type: "disabled" },
+  });
+
+  return result.choices[0]?.message?.content || "";
+}
+
+async function callVisionLLM(base64Image: string, mimeType: string): Promise<string> {
+  // Try Gemini first (for Vercel)
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      return await callGeminiVision(base64Image, mimeType);
+    } catch (err) {
+      console.warn("[read-bill] Gemini failed, falling back to ZAI:", err);
+    }
+  }
+  // Fallback to z-ai-web-dev-sdk (for local dev)
+  return await callZAIVision(base64Image, mimeType);
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -28,42 +96,9 @@ export async function POST(request: NextRequest) {
 
     const { image: base64Image, mimeType } = parsed.data;
 
-    // Call Gemini Vision to analyze the bill
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "GEMINI_API_KEY environment variable is not set. Please add it in Vercel settings." },
-        { status: 500 }
-      );
-    }
-
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-    const result = await model.generateContent([
-      {
-        inlineData: {
-          mimeType: mimeType,
-          data: base64Image,
-        },
-      },
-      {
-        text: `Ye ek stock bill ya invoice ka photo hai. Isme se saare products aur unke prices extract karo.
-
-STRICTLY return ONLY a valid JSON array. No extra text, no explanation, no markdown.
-Example: [{"name": "product name", "price": 123, "unit": "pcs"}]
-
-Rules:
-- "name" = product name (string)
-- "price" = product price (number only, no ₹ symbol, no commas)
-- "unit" = unit like pcs, kg, liter, meter, box, pack, dozen (string, default "pcs")
-- Extract ALL items from the bill
-- If unit is not clear, use "pcs"`,
-      },
-    ]);
-
-    let rawResponse = result.response.text();
-    console.log("[read-bill] Gemini raw response:", rawResponse.substring(0, 500));
+    // Call Vision LLM with fallback
+    let rawResponse = await callVisionLLM(base64Image, mimeType);
+    console.log("[read-bill] LLM raw response:", rawResponse.substring(0, 500));
 
     // Try multiple parsing strategies
     let extractedProducts: ExtractedProduct[] = [];

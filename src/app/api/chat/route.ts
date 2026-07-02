@@ -7,20 +7,44 @@ const chatSchema = z.object({
   message: z.string().min(1, "Message is required"),
 });
 
-async function callLLM(systemPrompt: string, userMessage: string): Promise<string> {
+async function callGemini(systemPrompt: string, userMessage: string): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY not set");
-  }
+  if (!apiKey) throw new Error("GEMINI_API_KEY not set");
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   const fullPrompt = `${systemPrompt}\n\nCustomer: ${userMessage}\n\nJawab:`;
-
   const result = await model.generateContent(fullPrompt);
-  const response = result.response.text();
-  return response;
+  return result.response.text();
+}
+
+async function callZAI(systemPrompt: string, userMessage: string): Promise<string> {
+  const ZAI = (await import("z-ai-web-dev-sdk")).default;
+  const zai = await ZAI.create();
+
+  const result = await zai.chat.completions.create({
+    model: "gemini-2.0-flash",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userMessage },
+    ],
+  });
+
+  return result.choices[0]?.message?.content || "Koi response nahi aaya.";
+}
+
+async function callLLM(systemPrompt: string, userMessage: string): Promise<string> {
+  // Try Gemini first (for Vercel)
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      return await callGemini(systemPrompt, userMessage);
+    } catch (err) {
+      console.warn("[chat] Gemini failed, falling back to ZAI:", err);
+    }
+  }
+  // Fallback to z-ai-web-dev-sdk (for local dev)
+  return await callZAI(systemPrompt, userMessage);
 }
 
 export async function POST(request: NextRequest) {
