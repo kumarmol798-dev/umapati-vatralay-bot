@@ -13,17 +13,31 @@ interface ExtractedProduct {
   unit: string;
 }
 
-const BILL_PROMPT = `Ye ek stock bill ya invoice ka photo hai. Isme se saare products aur unke prices extract karo.
+const BILL_PROMPT = `Ye ek stock bill / invoice / credit memo ka photo hai. Isme se saare products extract karo.
 
 STRICTLY return ONLY a valid JSON array. No extra text, no explanation, no markdown.
-Example: [{"name": "product name", "price": 123, "unit": "pcs"}]
 
-Rules:
-- "name" = product name (string)
-- "price" = product price (number only, no ₹ symbol, no commas)
-- "unit" = unit like pcs, kg, liter, meter, box, pack, dozen (string, default "pcs")
-- Extract ALL items from the bill
-- If unit is not clear, use "pcs"`;
+MOST IMPORTANT RULES:
+1. "name" = Bill mein jo "Quality" ya main product category likha hai (jaise "Cott Saree", "Fancy Saree", "Silk Saree"). Agar uske baad "Description" ya "Company" ya koi aur detail di ho, to use BRACKETS mein name ke saath lagao.
+   Example: name="Cott Saree (Phuket Cotton Bp B.k)" — yahan "Cott Saree" quality hai aur "Phuket Cotton Bp B.k" description hai.
+
+2. "price" = Sirf PER UNIT RATE. "Amount" ya "Total" ya "Net Amount" NAHI leke aana. Rate column mein jo price hai wahi leni hai.
+   Example: Agar Rate=438 aur Quantity=8 hai to price=438 hoga (NOT 3504).
+
+3. "unit" = Bill mein jo unit hai: "Th/PC" ya "Pcs" → "pcs", "Mtr" → "meter", "Kg" → "kg", "Ltr" → "liter". Default "pcs".
+
+4. Har ek row/item ko alag object banao. Koi item miss mat karna.
+5. Serial numbers, GST, totals, summary, tax rows — ye skip karo. Sirf actual products lo.
+
+REAL EXAMPLE from a typical saree bill:
+Bill mein: Quality="Cott Saree", Description="Phuket Cotton Bp B.k", Rate=438.00, Th/PC=8
+Output: {"name": "Cott Saree (Phuket Cotton Bp B.k)", "price": 438, "unit": "pcs"}
+
+Bill mein: Quality="Fancy Saree", Description="Ruby Shagun", Rate=923.00, Th/PC=2
+Output: {"name": "Fancy Saree (Ruby Shagun)", "price": 923, "unit": "pcs"}
+
+FULL OUTPUT FORMAT:
+[{"name": "Product Name (Description if any)", "price": 123, "unit": "pcs"}]`;
 
 // ─── Groq Vision (for Vercel — 100% free) ────────────────────────────────────
 
