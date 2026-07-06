@@ -11,6 +11,8 @@ import {
   Settings,
   Trash2,
   MoreVertical,
+  LogOut,
+  Lock,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -107,6 +109,21 @@ function formatDate(dateStr: string): string {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function Home() {
+  // Auth state
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // Check localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('uv_auth');
+    if (saved) {
+      setIsLoggedIn(true);
+    }
+  }, []);
+
   // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const [inputText, setInputText] = useState('');
@@ -131,6 +148,7 @@ export default function Home() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
+  const loginPasswordRef = useRef<HTMLInputElement>(null);
 
   // ─── Auto-scroll to bottom ────────────────────────────────────────────────
   useEffect(() => {
@@ -356,6 +374,43 @@ export default function Home() {
     }
   };
 
+  // ─── Login handler ─────────────────────────────────────────────────────
+  const handleLogin = async () => {
+    if (!loginUsername.trim() || !loginPassword.trim()) {
+      setLoginError('Username aur password dono daalo');
+      return;
+    }
+    setIsLoggingIn(true);
+    setLoginError('');
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: loginUsername.trim(), password: loginPassword }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('uv_auth', data.token);
+        setIsLoggedIn(true);
+        toast.success('Login successful!');
+      } else {
+        setLoginError(data.error || 'Login failed');
+      }
+    } catch {
+      setLoginError('Network error. Dubara try karo.');
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('uv_auth');
+    setIsLoggedIn(false);
+    setLoginUsername('');
+    setLoginPassword('');
+    toast.success('Logout ho gaye');
+  };
+
   // ─── Handle key press ─────────────────────────────────────────────────────
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -365,6 +420,100 @@ export default function Home() {
   };
 
   // ─── Render ───────────────────────────────────────────────────────────────
+  if (!isLoggedIn) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-[#111b21] p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-sm bg-[#1e2e35] rounded-2xl p-8 shadow-2xl"
+        >
+          {/* Logo */}
+          <div className="flex flex-col items-center mb-8">
+            <div className="w-20 h-20 rounded-full bg-[#00a884] flex items-center justify-center mb-4">
+              <Lock size={36} className="text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-white">Umapati Vatralay</h1>
+            <p className="text-gray-400 text-sm mt-1">Login karein aage badhne ke liye</p>
+          </div>
+
+          {/* Error */}
+          <AnimatePresence>
+            {loginError && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="bg-red-500/20 border border-red-500/40 text-red-400 text-sm rounded-lg p-3 mb-4 text-center"
+              >
+                {loginError}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Form */}
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="username" className="text-gray-300 text-sm mb-1.5 block">
+                Username
+              </Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="Username daalo"
+                value={loginUsername}
+                onChange={(e) => setLoginUsername(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') loginPasswordRef.current?.focus();
+                }}
+                className="bg-[#2a3942] border-[#3a4a52] text-white placeholder:text-gray-500 focus:border-[#00a884] h-12 rounded-xl"
+                autoComplete="username"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="password" className="text-gray-300 text-sm mb-1.5 block">
+                Password
+              </Label>
+              <Input
+                ref={loginPasswordRef}
+                id="password"
+                type="password"
+                placeholder="Password daalo"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleLogin();
+                }}
+                className="bg-[#2a3942] border-[#3a4a52] text-white placeholder:text-gray-500 focus:border-[#00a884] h-12 rounded-xl"
+                autoComplete="current-password"
+              />
+            </div>
+
+            <Button
+              onClick={handleLogin}
+              disabled={isLoggingIn}
+              className="w-full h-12 bg-[#00a884] hover:bg-[#00916f] text-white font-semibold rounded-xl text-base transition-colors"
+            >
+              {isLoggingIn ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Login ho raha hai...
+                </div>
+              ) : (
+                'Login'
+              )}
+            </Button>
+          </div>
+
+          <p className="text-gray-500 text-xs text-center mt-6">
+            Umapati Vatralay — Product Management Bot
+          </p>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen flex flex-col bg-[#111b21] max-w-lg mx-auto relative overflow-hidden shadow-2xl">
       {/* ── Header (Fixed) ──────────────────────────────────────────────── */}
@@ -429,6 +578,13 @@ export default function Home() {
               >
                 <Trash2 size={16} className="mr-2" />
                 Clear All Products
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-red-600 focus:text-red-600"
+                onClick={handleLogout}
+              >
+                <LogOut size={16} className="mr-2" />
+                Logout
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
