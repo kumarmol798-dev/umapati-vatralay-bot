@@ -66,7 +66,7 @@ const UNITS = ['pcs', 'kg', 'liter', 'meter', 'box', 'pack', 'dozen'] as const;
 
 const WELCOME_MESSAGE: ChatMessage = {
   id: 'welcome',
-  text: 'Namaste! 🙏 Umapati Vatralay mein aapka swagat hai. Mujhse kisi bhi product ka naam poochho, main aapko price bata dunga. Ya phir koi bill ki photo upload karo, main usse products auto-read kar lunga.',
+  text: 'Namaste! 🙏 Umapati Vastralay mein aapka swagat hai. Mujhse kisi bhi product ka naam poochho, main aapko price bata dunga. Ya phir koi bill ki photo upload karo, main usse products auto-read kar lunga.',
   sender: 'bot',
   timestamp: new Date(),
 };
@@ -430,10 +430,10 @@ export default function Home() {
         >
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
-            <div className="w-20 h-20 rounded-full bg-[#00a884] flex items-center justify-center mb-4">
-              <Lock size={36} className="text-white" />
+            <div className="w-24 h-24 rounded-full bg-[#00a884] flex items-center justify-center mb-4 overflow-hidden border-4 border-[#00a884]/30">
+              <img src="/logo.png" alt="Umapati Vastralay" className="w-full h-full object-cover" />
             </div>
-            <h1 className="text-2xl font-bold text-white">Umapati Vatralay</h1>
+            <h1 className="text-2xl font-bold text-white">Umapati Vastralay</h1>
             <p className="text-gray-400 text-sm mt-1">Login karein aage badhne ke liye</p>
           </div>
 
@@ -507,7 +507,7 @@ export default function Home() {
           </div>
 
           <p className="text-gray-500 text-xs text-center mt-6">
-            Umapati Vatralay — Product Management Bot
+            Umapati Vastralay — Product Management Bot
           </p>
         </motion.div>
       </div>
@@ -524,13 +524,13 @@ export default function Home() {
         <div className="flex items-center gap-3">
           <img
             src="/logo.png"
-            alt="Umapati Vatralay"
+            alt="Umapati Vastralay"
             className="rounded-full object-cover"
             style={{ width: 40, height: 40, backgroundColor: '#128C7E' }}
           />
           <div>
             <h1 className="text-white font-semibold text-base leading-tight">
-              Umapati Vatralay
+              Umapati Vastralay
             </h1>
             <p className="text-green-200 text-xs">online</p>
           </div>

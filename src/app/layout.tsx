@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Umapati Vatralay - Product Chat Bot",
-  description: "Umapati Vatralay ka AI chatbot — product price poocho, bill photo upload karo, auto-read hoga!",
+  title: "Umapati Vastralay - Product Chat Bot",
+  description: "Umapati Vastralay ka AI chatbot — product price poocho, bill photo upload karo, auto-read hoga!",
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
   },

@@ -107,7 +107,7 @@ Jab customer in mein se koi product pooche:
 3. Jab customer bataye to wahi price batao.`;
     }
 
-    const systemPrompt = `Tum Umapati Vatralay ke assistant ho. Tumhari job hai customers ko product ke baare mein batana.
+    const systemPrompt = `Tum Umapati Vastralay ke assistant ho. Tumhari job hai customers ko product ke baare mein batana.
 
 Ye products available hain:
 ${productList || "(Koi product abhi available nahi hai)"}
