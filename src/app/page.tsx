@@ -422,112 +422,165 @@ export default function Home() {
   // ─── Render ───────────────────────────────────────────────────────────────
   if (!isLoggedIn) {
     return (
-      <div className="h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0b141a 0%, #0d1f2d 30%, #0f2b1e 60%, #111b21 100%)' }}>
-        {/* Decorative blurred circles */}
-        <div className="absolute top-1/4 -left-20 w-64 h-64 bg-[#00a884]/15 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-20 w-72 h-72 bg-[#00a884]/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#00a884]/5 rounded-full blur-3xl" />
+      <div className="h-screen flex items-center justify-center p-4 bg-[#0a1014] relative overflow-hidden">
+        {/* Animated background grid pattern */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{
+          backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)',
+          backgroundSize: '40px 40px'
+        }} />
 
         <motion.div
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="w-full max-w-sm relative z-10"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+          className="w-full max-w-[360px] relative z-10"
         >
-          <div className="rounded-2xl p-8 shadow-2xl border border-white/10" style={{ background: 'linear-gradient(160deg, rgba(30,46,53,0.95) 0%, rgba(20,35,42,0.98) 50%, rgba(15,30,25,0.95) 100%)', backdropFilter: 'blur(20px)' }}>
-            {/* Top decorative line */}
-            <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[#00a884]/60 to-transparent" />
+          {/* Card with animated gradient border */}
+          <div className="relative rounded-3xl p-[2px]" style={{ background: 'linear-gradient(135deg, #00a884, #00796b, #004d40, #00a884)', backgroundSize: '300% 300%', animation: 'borderGlow 4s ease infinite' }}>
+            {/* Outer glow */}
+            <div className="absolute -inset-4 rounded-[2rem] bg-[#00a884]/[0.07] blur-2xl pointer-events-none" />
+            <div className="relative rounded-3xl p-7 overflow-hidden" style={{ background: 'linear-gradient(160deg, #142b33 0%, #111b21 35%, #0f1f26 65%, #111b21 100%)' }}>
+              {/* Decorative mesh gradient orbs */}
+              <div className="absolute -top-20 -right-20 w-52 h-52 bg-[#00a884]/[0.06] rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-16 -left-16 w-44 h-44 bg-[#00a884]/[0.04] rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-60 h-60 bg-[#00a884]/[0.02] rounded-full blur-3xl pointer-events-none" />
+              {/* Subtle noise texture overlay */}
+              <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0)', backgroundSize: '24px 24px' }} />
 
-            {/* Logo */}
-            <div className="flex flex-col items-center mb-8 mt-2">
-              <div className="relative mb-4">
-                <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-[#00a884]/50 shadow-lg shadow-[#00a884]/20">
-                  <img src="/logo.png" alt="Umapati Vastralay" className="w-full h-full object-cover" />
-                </div>
-                <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#00a884] rounded-full flex items-center justify-center border-2 border-[#1e2e35]">
-                  <Lock size={12} className="text-white" />
-                </div>
-              </div>
-              <h1 className="text-2xl font-bold text-white tracking-wide">Umapati Vastralay</h1>
-              <p className="text-gray-400 text-sm mt-1">Login karein aage badhne ke liye</p>
-            </div>
-
-            {/* Error */}
-            <AnimatePresence>
-              {loginError && (
+              {/* Content sits above decorative layers */}
+              <div className="relative z-10">
+              {/* Top section with logo */}
+              <div className="flex flex-col items-center pt-2 pb-6">
+                {/* Logo with ring animation */}
                 <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="bg-red-500/15 border border-red-500/30 text-red-400 text-sm rounded-xl p-3 mb-4 text-center"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.2, duration: 0.4 }}
+                  className="relative mb-5"
                 >
-                  {loginError}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Form */}
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="username" className="text-gray-300 text-sm mb-1.5 block">
-                  Username
-                </Label>
-                <Input
-                  id="username"
-                  type="text"
-                  placeholder="Username daalo"
-                  value={loginUsername}
-                  onChange={(e) => setLoginUsername(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') loginPasswordRef.current?.focus();
-                  }}
-                  className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#00a884] h-12 rounded-xl transition-colors"
-                  autoComplete="username"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="password" className="text-gray-300 text-sm mb-1.5 block">
-                  Password
-                </Label>
-                <Input
-                  ref={loginPasswordRef}
-                  id="password"
-                  type="password"
-                  placeholder="Password daalo"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleLogin();
-                  }}
-                  className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#00a884] h-12 rounded-xl transition-colors"
-                  autoComplete="current-password"
-                />
-              </div>
-
-              <Button
-                onClick={handleLogin}
-                disabled={isLoggingIn}
-                className="w-full h-12 rounded-xl text-base font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-[#00a884]/25 hover:scale-[1.02] active:scale-[0.98]"
-                style={{ background: 'linear-gradient(135deg, #00a884 0%, #00c49a 100%)' }}
-              >
-                {isLoggingIn ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Login ho raha hai...
+                  <div className="w-[88px] h-[88px] rounded-2xl overflow-hidden shadow-xl shadow-black/50 ring-2 ring-[#00a884]/40 ring-offset-2 ring-offset-[#111b21]">
+                    <img src="/logo.png" alt="Umapati Vastralay" className="w-full h-full object-cover" />
                   </div>
-                ) : (
-                  'Login'
+                  {/* Online dot */}
+                  <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-[#00a884] px-2 py-0.5 rounded-full">
+                    <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                    <span className="text-[9px] text-white font-medium">Secure</span>
+                  </div>
+                </motion.div>
+
+                <motion.h1
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-[22px] font-bold text-white"
+                >
+                  Umapati Vastralay
+                </motion.h1>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-gray-500 text-[13px] mt-1"
+                >
+                  Apna account open karein
+                </motion.p>
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex-1 h-px bg-white/10" />
+                <span className="text-[10px] text-gray-600 uppercase tracking-widest">Login</span>
+                <div className="flex-1 h-px bg-white/10" />
+              </div>
+
+              {/* Error */}
+              <AnimatePresence>
+                {loginError && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden mb-4"
+                  >
+                    <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-[13px] rounded-xl px-4 py-2.5 text-center flex items-center justify-center gap-2">
+                      <X size={14} />
+                      {loginError}
+                    </div>
+                  </motion.div>
                 )}
-              </Button>
+              </AnimatePresence>
+
+              {/* Form */}
+              <div className="space-y-3.5">
+                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}>
+                  <Label htmlFor="username" className="text-gray-400 text-[12px] mb-1 block font-medium uppercase tracking-wider">
+                    Username
+                  </Label>
+                  <Input
+                    id="username"
+                    type="text"
+                    placeholder=" "
+                    value={loginUsername}
+                    onChange={(e) => setLoginUsername(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') loginPasswordRef.current?.focus();
+                    }}
+                    className="bg-[#0b1519] border-white/[0.07] text-white placeholder:text-gray-600 focus:border-[#00a884]/60 h-11 rounded-xl text-[14px] transition-all focus:shadow-[0_0_0_1px_rgba(0,168,132,0.2)]"
+                    autoComplete="username"
+                  />
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }}>
+                  <Label htmlFor="password" className="text-gray-400 text-[12px] mb-1 block font-medium uppercase tracking-wider">
+                    Password
+                  </Label>
+                  <Input
+                    ref={loginPasswordRef}
+                    id="password"
+                    type="password"
+                    placeholder=" "
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleLogin();
+                    }}
+                    className="bg-[#0b1519] border-white/[0.07] text-white placeholder:text-gray-600 focus:border-[#00a884]/60 h-11 rounded-xl text-[14px] transition-all focus:shadow-[0_0_0_1px_rgba(0,168,132,0.2)]"
+                    autoComplete="current-password"
+                  />
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+                  <Button
+                    onClick={handleLogin}
+                    disabled={isLoggingIn}
+                    className="w-full h-11 rounded-xl text-[15px] font-semibold mt-2 bg-[#00a884] hover:bg-[#009b7d] active:bg-[#008f72] text-white transition-all active:scale-[0.98] disabled:opacity-60"
+                  >
+                    {isLoggingIn ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Login ho raha hai...
+                      </div>
+                    ) : (
+                      'Login →'
+                    )}
+                  </Button>
+                </motion.div>
+              </div>
+
+              {/* Footer */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.7 }}
+                className="flex items-center justify-center gap-1.5 mt-6"
+              >
+                <Lock size={10} className="text-gray-600" />
+                <p className="text-gray-600 text-[11px]">
+                  Secure Login — Umapati Vastralay
+                </p>
+              </motion.div>
+              </div>
             </div>
-
-            <p className="text-gray-500 text-xs text-center mt-6">
-              Umapati Vastralay — Product Management Bot
-            </p>
-
-            {/* Bottom decorative line */}
-            <div className="absolute bottom-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[#00a884]/30 to-transparent" />
           </div>
         </motion.div>
       </div>
@@ -981,6 +1034,12 @@ export default function Home() {
 
       {/* ── Typing indicator keyframes ──────────────────────────────────────── */}
       <style jsx global>{`
+        @keyframes borderGlow {
+          0%   { background-position: 0% 50%; }
+          50%  { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+
         @keyframes typingBounce {
           0%,
           60%,
