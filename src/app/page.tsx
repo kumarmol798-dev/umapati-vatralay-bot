@@ -13,6 +13,8 @@ import {
   MoreVertical,
   LogOut,
   Lock,
+  KeyRound,
+  ArrowLeft,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -115,6 +117,16 @@ export default function Home() {
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // Forgot password state
+  const [showForgot, setShowForgot] = useState(false);
+  const [resetUsername, setResetUsername] = useState('');
+  const [resetOldPassword, setResetOldPassword] = useState('');
+  const [resetNewPassword, setResetNewPassword] = useState('');
+  const [resetConfirmPassword, setResetConfirmPassword] = useState('');
+  const [resetError, setResetError] = useState('');
+  const [resetSuccess, setResetSuccess] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   // Check localStorage on mount
   useEffect(() => {
@@ -403,6 +415,58 @@ export default function Home() {
     }
   };
 
+  const handleResetPassword = async () => {
+    if (!resetUsername.trim()) {
+      setResetError('Username daalo');
+      return;
+    }
+    if (!resetOldPassword.trim()) {
+      setResetError('Purana password daalo');
+      return;
+    }
+    if (!resetNewPassword.trim()) {
+      setResetError('Naya password daalo');
+      return;
+    }
+    if (resetNewPassword !== resetConfirmPassword) {
+      setResetError('Dono password match nahi kar rahe');
+      return;
+    }
+    if (resetNewPassword.length < 4) {
+      setResetError('Password kam se kam 4 character ka hona chahiye');
+      return;
+    }
+    setIsResetting(true);
+    setResetError('');
+    setResetSuccess(false);
+    try {
+      const res = await fetch('/api/auth/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: resetUsername.trim(), oldPassword: resetOldPassword, newPassword: resetNewPassword }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setResetSuccess(true);
+        toast.success('Password badal gaya! Ab naya password se login karo.');
+        setTimeout(() => {
+          setShowForgot(false);
+          setResetUsername('');
+          setResetOldPassword('');
+          setResetNewPassword('');
+          setResetConfirmPassword('');
+          setResetSuccess(false);
+        }, 2500);
+      } else {
+        setResetError(data.error || 'Reset failed');
+      }
+    } catch {
+      setResetError('Network error. Dubara try karo.');
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('uv_auth');
     setIsLoggedIn(false);
@@ -493,10 +557,11 @@ export default function Home() {
                 <div className="flex-1 h-px bg-white/10" />
               </div>
 
-              {/* Error */}
-              <AnimatePresence>
-                {loginError && (
+              {/* Error / Success messages */}
+              <AnimatePresence mode="wait">
+                {loginError && !showForgot && (
                   <motion.div
+                    key="login-err"
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
@@ -510,62 +575,225 @@ export default function Home() {
                 )}
               </AnimatePresence>
 
-              {/* Form */}
-              <div className="space-y-3.5">
-                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}>
-                  <Label htmlFor="username" className="text-gray-400 text-[12px] mb-1 block font-medium uppercase tracking-wider">
-                    Username
-                  </Label>
-                  <Input
-                    id="username"
-                    type="text"
-                    placeholder=" "
-                    value={loginUsername}
-                    onChange={(e) => setLoginUsername(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') loginPasswordRef.current?.focus();
-                    }}
-                    className="bg-[#0b1519] border-white/[0.07] text-white placeholder:text-gray-600 focus:border-[#00a884]/60 h-11 rounded-xl text-[14px] transition-all focus:shadow-[0_0_0_1px_rgba(0,168,132,0.2)]"
-                    autoComplete="username"
-                  />
-                </motion.div>
-
-                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }}>
-                  <Label htmlFor="password" className="text-gray-400 text-[12px] mb-1 block font-medium uppercase tracking-wider">
-                    Password
-                  </Label>
-                  <Input
-                    ref={loginPasswordRef}
-                    id="password"
-                    type="password"
-                    placeholder=" "
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleLogin();
-                    }}
-                    className="bg-[#0b1519] border-white/[0.07] text-white placeholder:text-gray-600 focus:border-[#00a884]/60 h-11 rounded-xl text-[14px] transition-all focus:shadow-[0_0_0_1px_rgba(0,168,132,0.2)]"
-                    autoComplete="current-password"
-                  />
-                </motion.div>
-
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
-                  <Button
-                    onClick={handleLogin}
-                    disabled={isLoggingIn}
-                    className="w-full h-11 rounded-xl text-[15px] font-semibold mt-2 bg-[#00a884] hover:bg-[#009b7d] active:bg-[#008f72] text-white transition-all active:scale-[0.98] disabled:opacity-60"
+              <AnimatePresence mode="wait">
+                {!showForgot ? (
+                  /* ── LOGIN FORM ── */
+                  <motion.div
+                    key="login-form"
+                    initial={{ opacity: 0, x: 0 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -30 }}
+                    transition={{ duration: 0.25 }}
+                    className="space-y-3.5"
                   >
-                    {isLoggingIn ? (
+                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}>
+                      <Label htmlFor="username" className="text-gray-400 text-[12px] mb-1 block font-medium uppercase tracking-wider">
+                        Username
+                      </Label>
+                      <Input
+                        id="username"
+                        type="text"
+                        placeholder=" "
+                        value={loginUsername}
+                        onChange={(e) => setLoginUsername(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') loginPasswordRef.current?.focus();
+                        }}
+                        className="bg-[#0b1519] border-white/[0.07] text-white placeholder:text-gray-600 focus:border-[#00a884]/60 h-11 rounded-xl text-[14px] transition-all focus:shadow-[0_0_0_1px_rgba(0,168,132,0.2)]"
+                        autoComplete="username"
+                      />
+                    </motion.div>
+
+                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }}>
+                      <Label htmlFor="password" className="text-gray-400 text-[12px] mb-1 block font-medium uppercase tracking-wider">
+                        Password
+                      </Label>
+                      <Input
+                        ref={loginPasswordRef}
+                        id="password"
+                        type="password"
+                        placeholder=" "
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleLogin();
+                        }}
+                        className="bg-[#0b1519] border-white/[0.07] text-white placeholder:text-gray-600 focus:border-[#00a884]/60 h-11 rounded-xl text-[14px] transition-all focus:shadow-[0_0_0_1px_rgba(0,168,132,0.2)]"
+                        autoComplete="current-password"
+                      />
+                    </motion.div>
+
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+                      <Button
+                        onClick={handleLogin}
+                        disabled={isLoggingIn}
+                        className="w-full h-11 rounded-xl text-[15px] font-semibold mt-2 bg-[#00a884] hover:bg-[#009b7d] active:bg-[#008f72] text-white transition-all active:scale-[0.98] disabled:opacity-60"
+                      >
+                        {isLoggingIn ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            Login ho raha hai...
+                          </div>
+                        ) : (
+                          'Login →'
+                        )}
+                      </Button>
+                    </motion.div>
+
+                    {/* Forgot password link */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.7 }}
+                      className="pt-1"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => { setShowForgot(true); setLoginError(''); setResetError(''); setResetSuccess(false); setResetOldPassword(''); }}
+                        className="w-full text-center text-[#00a884]/70 hover:text-[#00a884] text-[12px] font-medium transition-colors py-1"
+                      >
+                        Password Bhool Gaye?
+                      </button>
+                    </motion.div>
+                  </motion.div>
+                ) : (
+                  /* ── FORGOT PASSWORD FORM ── */
+                  <motion.div
+                    key="forgot-form"
+                    initial={{ opacity: 0, x: 30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -30 }}
+                    transition={{ duration: 0.25 }}
+                    className="space-y-3.5"
+                  >
+                    {/* Back + Title */}
+                    <div className="flex items-center gap-2 mb-1">
+                      <button
+                        type="button"
+                        onClick={() => { setShowForgot(false); setResetError(''); setResetSuccess(false); setResetOldPassword(''); }}
+                        className="text-gray-400 hover:text-white transition-colors"
+                      >
+                        <ArrowLeft size={16} />
+                      </button>
                       <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Login ho raha hai...
+                        <KeyRound size={14} className="text-[#00a884]" />
+                        <span className="text-white text-[14px] font-semibold">Password Badlo</span>
                       </div>
-                    ) : (
-                      'Login →'
-                    )}
-                  </Button>
-                </motion.div>
-              </div>
+                    </div>
+
+                    {/* Reset error */}
+                    <AnimatePresence>
+                      {resetError && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-[13px] rounded-xl px-4 py-2.5 text-center flex items-center justify-center gap-2">
+                            <X size={14} />
+                            {resetError}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Reset success */}
+                    <AnimatePresence>
+                      {resetSuccess && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="bg-[#00a884]/10 border border-[#00a884]/20 text-[#00a884] text-[13px] rounded-xl px-4 py-2.5 text-center font-medium">
+                            ✓ Password badal gaya! Ab login karo...
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <motion.div>
+                      <Label htmlFor="reset-username" className="text-gray-400 text-[12px] mb-1 block font-medium uppercase tracking-wider">
+                        Username
+                      </Label>
+                      <Input
+                        id="reset-username"
+                        type="text"
+                        placeholder=" "
+                        value={resetUsername}
+                        onChange={(e) => setResetUsername(e.target.value)}
+                        disabled={isResetting || resetSuccess}
+                        className="bg-[#0b1519] border-white/[0.07] text-white placeholder:text-gray-600 focus:border-[#00a884]/60 h-11 rounded-xl text-[14px] transition-all focus:shadow-[0_0_0_1px_rgba(0,168,132,0.2)] disabled:opacity-50"
+                      />
+                    </motion.div>
+
+                    <motion.div>
+                      <Label htmlFor="old-password" className="text-gray-400 text-[12px] mb-1 block font-medium uppercase tracking-wider">
+                        Purana Password
+                      </Label>
+                      <Input
+                        id="old-password"
+                        type="password"
+                        placeholder=" "
+                        value={resetOldPassword}
+                        onChange={(e) => setResetOldPassword(e.target.value)}
+                        disabled={isResetting || resetSuccess}
+                        className="bg-[#0b1519] border-white/[0.07] text-white placeholder:text-gray-600 focus:border-[#00a884]/60 h-11 rounded-xl text-[14px] transition-all focus:shadow-[0_0_0_1px_rgba(0,168,132,0.2)] disabled:opacity-50"
+                      />
+                    </motion.div>
+
+                    <motion.div>
+                      <Label htmlFor="new-password" className="text-gray-400 text-[12px] mb-1 block font-medium uppercase tracking-wider">
+                        Naya Password
+                      </Label>
+                      <Input
+                        id="new-password"
+                        type="password"
+                        placeholder=" "
+                        value={resetNewPassword}
+                        onChange={(e) => setResetNewPassword(e.target.value)}
+                        disabled={isResetting || resetSuccess}
+                        className="bg-[#0b1519] border-white/[0.07] text-white placeholder:text-gray-600 focus:border-[#00a884]/60 h-11 rounded-xl text-[14px] transition-all focus:shadow-[0_0_0_1px_rgba(0,168,132,0.2)] disabled:opacity-50"
+                      />
+                    </motion.div>
+
+                    <motion.div>
+                      <Label htmlFor="confirm-password" className="text-gray-400 text-[12px] mb-1 block font-medium uppercase tracking-wider">
+                        Confirm Password
+                      </Label>
+                      <Input
+                        id="confirm-password"
+                        type="password"
+                        placeholder=" "
+                        value={resetConfirmPassword}
+                        onChange={(e) => setResetConfirmPassword(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleResetPassword(); }}
+                        disabled={isResetting || resetSuccess}
+                        className="bg-[#0b1519] border-white/[0.07] text-white placeholder:text-gray-600 focus:border-[#00a884]/60 h-11 rounded-xl text-[14px] transition-all focus:shadow-[0_0_0_1px_rgba(0,168,132,0.2)] disabled:opacity-50"
+                      />
+                    </motion.div>
+
+                    <motion.div>
+                      <Button
+                        onClick={handleResetPassword}
+                        disabled={isResetting || resetSuccess}
+                        className="w-full h-11 rounded-xl text-[15px] font-semibold mt-2 bg-[#00a884] hover:bg-[#009b7d] active:bg-[#008f72] text-white transition-all active:scale-[0.98] disabled:opacity-60"
+                      >
+                        {isResetting ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            Badal raha hai...
+                          </div>
+                        ) : (
+                          'Password Badal De →'
+                        )}
+                      </Button>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Footer */}
               <motion.div
