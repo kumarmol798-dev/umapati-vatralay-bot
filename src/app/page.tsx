@@ -410,6 +410,26 @@ export default function Home() {
                 <Trash2 size={16} className="mr-2" />
                 Clear Chat
               </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-red-600 focus:text-red-600"
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/products/clear', { method: 'POST' });
+                    if (res.ok) {
+                      setProducts([]);
+                      fetchProducts();
+                      toast.success('Saare products delete ho gaye!');
+                    } else {
+                      toast.error('Products delete nahi ho paye');
+                    }
+                  } catch {
+                    toast.error('Error: Products clear nahi ho paye');
+                  }
+                }}
+              >
+                <Trash2 size={16} className="mr-2" />
+                Clear All Products
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
