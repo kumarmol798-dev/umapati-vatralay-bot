@@ -422,93 +422,113 @@ export default function Home() {
   // ─── Render ───────────────────────────────────────────────────────────────
   if (!isLoggedIn) {
     return (
-      <div className="h-screen flex items-center justify-center bg-[#111b21] p-4">
+      <div className="h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0b141a 0%, #0d1f2d 30%, #0f2b1e 60%, #111b21 100%)' }}>
+        {/* Decorative blurred circles */}
+        <div className="absolute top-1/4 -left-20 w-64 h-64 bg-[#00a884]/15 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 -right-20 w-72 h-72 bg-[#00a884]/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#00a884]/5 rounded-full blur-3xl" />
+
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-sm bg-[#1e2e35] rounded-2xl p-8 shadow-2xl"
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="w-full max-w-sm relative z-10"
         >
-          {/* Logo */}
-          <div className="flex flex-col items-center mb-8">
-            <div className="w-24 h-24 rounded-full bg-[#00a884] flex items-center justify-center mb-4 overflow-hidden border-4 border-[#00a884]/30">
-              <img src="/logo.png" alt="Umapati Vastralay" className="w-full h-full object-cover" />
-            </div>
-            <h1 className="text-2xl font-bold text-white">Umapati Vastralay</h1>
-            <p className="text-gray-400 text-sm mt-1">Login karein aage badhne ke liye</p>
-          </div>
+          <div className="rounded-2xl p-8 shadow-2xl border border-white/10" style={{ background: 'linear-gradient(160deg, rgba(30,46,53,0.95) 0%, rgba(20,35,42,0.98) 50%, rgba(15,30,25,0.95) 100%)', backdropFilter: 'blur(20px)' }}>
+            {/* Top decorative line */}
+            <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[#00a884]/60 to-transparent" />
 
-          {/* Error */}
-          <AnimatePresence>
-            {loginError && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="bg-red-500/20 border border-red-500/40 text-red-400 text-sm rounded-lg p-3 mb-4 text-center"
-              >
-                {loginError}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Form */}
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="username" className="text-gray-300 text-sm mb-1.5 block">
-                Username
-              </Label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="Username daalo"
-                value={loginUsername}
-                onChange={(e) => setLoginUsername(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') loginPasswordRef.current?.focus();
-                }}
-                className="bg-[#2a3942] border-[#3a4a52] text-white placeholder:text-gray-500 focus:border-[#00a884] h-12 rounded-xl"
-                autoComplete="username"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="password" className="text-gray-300 text-sm mb-1.5 block">
-                Password
-              </Label>
-              <Input
-                ref={loginPasswordRef}
-                id="password"
-                type="password"
-                placeholder="Password daalo"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleLogin();
-                }}
-                className="bg-[#2a3942] border-[#3a4a52] text-white placeholder:text-gray-500 focus:border-[#00a884] h-12 rounded-xl"
-                autoComplete="current-password"
-              />
-            </div>
-
-            <Button
-              onClick={handleLogin}
-              disabled={isLoggingIn}
-              className="w-full h-12 bg-[#00a884] hover:bg-[#00916f] text-white font-semibold rounded-xl text-base transition-colors"
-            >
-              {isLoggingIn ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Login ho raha hai...
+            {/* Logo */}
+            <div className="flex flex-col items-center mb-8 mt-2">
+              <div className="relative mb-4">
+                <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-[#00a884]/50 shadow-lg shadow-[#00a884]/20">
+                  <img src="/logo.png" alt="Umapati Vastralay" className="w-full h-full object-cover" />
                 </div>
-              ) : (
-                'Login'
-              )}
-            </Button>
-          </div>
+                <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#00a884] rounded-full flex items-center justify-center border-2 border-[#1e2e35]">
+                  <Lock size={12} className="text-white" />
+                </div>
+              </div>
+              <h1 className="text-2xl font-bold text-white tracking-wide">Umapati Vastralay</h1>
+              <p className="text-gray-400 text-sm mt-1">Login karein aage badhne ke liye</p>
+            </div>
 
-          <p className="text-gray-500 text-xs text-center mt-6">
-            Umapati Vastralay — Product Management Bot
-          </p>
+            {/* Error */}
+            <AnimatePresence>
+              {loginError && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="bg-red-500/15 border border-red-500/30 text-red-400 text-sm rounded-xl p-3 mb-4 text-center"
+                >
+                  {loginError}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Form */}
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="username" className="text-gray-300 text-sm mb-1.5 block">
+                  Username
+                </Label>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="Username daalo"
+                  value={loginUsername}
+                  onChange={(e) => setLoginUsername(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') loginPasswordRef.current?.focus();
+                  }}
+                  className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#00a884] h-12 rounded-xl transition-colors"
+                  autoComplete="username"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="password" className="text-gray-300 text-sm mb-1.5 block">
+                  Password
+                </Label>
+                <Input
+                  ref={loginPasswordRef}
+                  id="password"
+                  type="password"
+                  placeholder="Password daalo"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleLogin();
+                  }}
+                  className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#00a884] h-12 rounded-xl transition-colors"
+                  autoComplete="current-password"
+                />
+              </div>
+
+              <Button
+                onClick={handleLogin}
+                disabled={isLoggingIn}
+                className="w-full h-12 rounded-xl text-base font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-[#00a884]/25 hover:scale-[1.02] active:scale-[0.98]"
+                style={{ background: 'linear-gradient(135deg, #00a884 0%, #00c49a 100%)' }}
+              >
+                {isLoggingIn ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Login ho raha hai...
+                  </div>
+                ) : (
+                  'Login'
+                )}
+              </Button>
+            </div>
+
+            <p className="text-gray-500 text-xs text-center mt-6">
+              Umapati Vastralay — Product Management Bot
+            </p>
+
+            {/* Bottom decorative line */}
+            <div className="absolute bottom-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[#00a884]/30 to-transparent" />
+          </div>
         </motion.div>
       </div>
     );
