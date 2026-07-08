@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Umapati Vastralay</string>
+    <string name="title_activity_main">Umapati Vastralay</string>
+    <string name="package_name">com.umapati.vastralay</string>
+    <string name="custom_url_scheme">com.umapati.vastralay</string>
+</resources>
