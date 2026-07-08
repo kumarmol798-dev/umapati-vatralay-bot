@@ -128,12 +128,42 @@ export default function Home() {
   const [resetSuccess, setResetSuccess] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
-  // Check localStorage on mount
+  // Check localStorage on mount & register service worker
   useEffect(() => {
     const saved = localStorage.getItem('uv_auth');
     if (saved) {
       setIsLoggedIn(true);
     }
+
+    // Register service worker for PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+
+    // PWA Install prompt
+    const handler = (e: Event) => {
+      e.preventDefault();
+      const deferred = e as unknown as { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
+      toast.custom(() => (
+        <div className="bg-[#1e2e35] text-white rounded-2xl p-4 shadow-2xl border border-white/10 max-w-[300px] w-full">
+          <p className="text-[14px] font-semibold mb-1">📱 App Install Karo</p>
+          <p className="text-gray-400 text-[12px] mb-3">Home screen pe add karo for quick access!</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { deferred.prompt(); toast.dismiss(); }}
+              className="flex-1 bg-[#00a884] hover:bg-[#009b7d] text-white text-[13px] font-medium py-2 rounded-xl transition-colors"
+            >Install</button>
+            <button
+              onClick={() => toast.dismiss()}
+              className="flex-1 bg-white/10 hover:bg-white/20 text-white text-[13px] font-medium py-2 rounded-xl transition-colors"
+            >Baad Mein</button>
+          </div>
+        </div>
+      ), { duration: 10000 });
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
   // Chat state
