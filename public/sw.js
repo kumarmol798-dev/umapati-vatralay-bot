@@ -1,4 +1,4 @@
-const CACHE_NAME = 'uv-bot-v2';
+const CACHE_NAME = 'uv-bot-v3';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',

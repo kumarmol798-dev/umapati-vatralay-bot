@@ -490,8 +490,9 @@ export default function Home() {
       } else {
         setResetError(data.error || 'Reset failed');
       }
-    } catch {
-      setResetError('Network error. Dubara try karo.');
+    } catch (err) {
+      const msg = err instanceof TypeError ? 'Network error. Internet check karo.' : 'Kuch gadbad ho gayi';
+      setResetError(msg);
     } finally {
       setIsResetting(false);
     }
